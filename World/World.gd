@@ -14,8 +14,8 @@ func _ready():
 		rotate_random(boid)
 
 func rotate_random(boid: Boid) -> void:
-	boid.rotate_object_local(Vector3(0,1,0), deg2rad(randi() % 360))
-	boid.rotate_object_local(Vector3(1,0,0), deg2rad(randi() % 360))
+	boid.rotate(Vector3(0,1,0), deg2rad(randi() % 360))
+	boid.rotate(Vector3(1,0,0), deg2rad(randi() % 360))
 
 func position_random(boid: Boid) -> void:
 	var x = rand_range(-2, 2)
