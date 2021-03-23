@@ -1,7 +1,6 @@
-[gd_scene load_steps=7 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://Boids/Boid.gd" type="Script" id=1]
-[ext_resource path="res://Camera/PivotCamera.tscn" type="PackedScene" id=2]
 
 [sub_resource type="SphereShape" id=1]
 radius = 0.142952
@@ -39,17 +38,8 @@ __meta__ = {
 "_edit_lock_": true
 }
 
-[node name="Pivot" parent="." instance=ExtResource( 2 )]
-look_around_speed = 0.1
-
-[node name="Camera" parent="Pivot" index="0"]
-transform = Transform( 1, 0, 0, 0, 0.989774, 0.142646, 0, -0.142646, 0.989774, 0, 0.350327, 2 )
-current = false
-
 [node name="DetectionZone" type="Area" parent="."]
 collision_layer = 0
 
 [node name="DetectionSphere" type="CollisionShape" parent="DetectionZone"]
 shape = SubResource( 4 )
-
-[editable path="Pivot"]

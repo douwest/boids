@@ -24,6 +24,10 @@ config/name="Boids"
 run/main_scene="res://World/World.tscn"
 config/icon="res://icon.png"
 
+[autoload]
+
+BoidProperties="*res://Boids/BoidProperties.gd"
+
 [rendering]
 
 environment/default_environment="res://default_env.tres"

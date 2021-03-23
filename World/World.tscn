@@ -18,7 +18,7 @@ script = ExtResource( 3 )
 __meta__ = {
 "_edit_lock_": true
 }
-num_boids = 30
+num_boids = 40
 
 [node name="Cube" parent="." instance=ExtResource( 2 )]
 transform = Transform( 1, 0, 0, 0, 1.12378, 0, 0, 0, 2.09118, 0, 0, 0 )
