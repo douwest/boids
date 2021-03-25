@@ -1,7 +1,7 @@
 extends Spatial
 
 
-onready var Boid = preload("res://Boids/Boid.tscn")
+onready var Boid = preload("res://Animals/Fish.tscn")
 onready var boids = $Boids
 
 export var num_boids = 15

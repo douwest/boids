@@ -13,9 +13,15 @@ _global_script_classes=[ {
 "class": "Boid",
 "language": "GDScript",
 "path": "res://Boids/Boid.gd"
+}, {
+"base": "Boid",
+"class": "Fish",
+"language": "GDScript",
+"path": "res://Animals/Fish.gd"
 } ]
 _global_script_class_icons={
-"Boid": ""
+"Boid": "",
+"Fish": ""
 }
 
 [application]

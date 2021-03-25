@@ -8,6 +8,15 @@ var speed = 0
 onready var collisionRays = $CollisionRays
 onready var detectionZone = $DetectionZone
 
+"""
+TODO:
+	- 	Add periodic functions to cohesion/alignment/separation weights to 
+		simulate fish school behaviours. (0.5 + sin(0.5 + t) + cos(0.5 + t))
+	-	Low/high separation leads to schooling behaviour 
+	-	Add targeting behaviour (for chasing player etc.)
+"""
+
+
 func _ready():
 	speed = (BoidProperties.min_speed + BoidProperties.max_speed) / 2
 
