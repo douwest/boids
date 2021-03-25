@@ -27,6 +27,7 @@ config/icon="res://icon.png"
 [autoload]
 
 BoidProperties="*res://Boids/BoidProperties.gd"
+BoidUtils="*res://Boids/BoidUtils.gd"
 
 [rendering]
 

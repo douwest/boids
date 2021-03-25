@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://Boids/Boid.gd" type="Script" id=1]
 
@@ -13,7 +13,9 @@ material = SubResource( 2 )
 size = Vector3( 0.125, 0.2, 0.04 )
 
 [sub_resource type="SphereShape" id=4]
-radius = 1.54865
+radius = 1.23589
+
+[sub_resource type="CubeMesh" id=5]
 
 [node name="Boid" type="KinematicBody"]
 input_ray_pickable = false
@@ -34,12 +36,21 @@ __meta__ = {
 }
 
 [node name="CollisionRays" type="Spatial" parent="."]
-__meta__ = {
-"_edit_lock_": true
-}
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5 )
 
 [node name="DetectionZone" type="Area" parent="."]
 collision_layer = 0
 
 [node name="DetectionSphere" type="CollisionShape" parent="DetectionZone"]
 shape = SubResource( 4 )
+
+[node name="Debug" type="Spatial" parent="."]
+visible = false
+
+[node name="MeshInstance" type="MeshInstance" parent="Debug"]
+visible = false
+mesh = SubResource( 5 )
+material/0 = null
+
+[node name="ImmediateGeometry" type="ImmediateGeometry" parent="Debug"]
+visible = false

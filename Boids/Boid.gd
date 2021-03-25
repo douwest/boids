@@ -2,127 +2,111 @@ extends KinematicBody
 class_name Boid
 
 var direction = Vector3.FORWARD
-var velocity = Vector3.FORWARD
+var velocity = Vector3(-0.1,0,-1)
 
 onready var collisionRays = $CollisionRays
 onready var detectionZone = $DetectionZone
-onready var intent = make_ray(Vector3.FORWARD, BoidProperties.collision_depth * 1.5, true)
+onready var debug = $Debug
+onready var geom = $Debug/ImmediateGeometry
+onready var velocity_ray = make_ray(Vector3(0,0,0), 1, true)
 
 func _ready() -> void:
-	generate_collision_rays()
-	add_child(intent)
+	$Debug.add_child(velocity_ray)
+#	for n in BoidUtils.ray_directions.size():
+#		geom.begin(Mesh.PRIMITIVE_LINES)
+#		geom.add_vertex(collisionRays.transform.origin) 
+#		geom.add_vertex(collisionRays.transform.origin + BoidUtils.ray_directions[n])	
+#		geom.end()
 
-func _physics_process(delta) -> void:
+func _physics_process(delta):
 	var acceleration = Vector3.ZERO
 	var nearby_boids = get_nearby_boids()
+
+	var average_offset = Vector3.ZERO
+	var average_heading = Vector3.ZERO
+
+	var cohesion_direction = Vector3.ZERO
+	var separation_direction = Vector3.ZERO
+	var alignment_direction = Vector3.ZERO
+
+	var number_of_boids = nearby_boids.size()
 	
-	#for boid in nearby_boids: make this a loop for all behaviours so it runs much faster
-	
-	var cohesion_force = steer_towards(cohesion(nearby_boids)) * BoidProperties.cohesion_weight	
-	var alignment_force = steer_towards(alignment(nearby_boids)) * BoidProperties.alignment_weight
-	var separation_force = steer_towards(separation(nearby_boids)) * BoidProperties.separation_weight
-	var avoidance_force = steer_towards(avoidance()) * BoidProperties.avoidance_weight
-	
+	if number_of_boids > 0:
+		for boid in nearby_boids:
+			average_offset += boid.global_transform.origin
+			average_heading += boid.direction
+		average_offset /= number_of_boids
+
+		cohesion_direction = average_offset - global_transform.origin
+		separation_direction = -(average_offset - global_transform.origin)
+		alignment_direction = average_heading.normalized()
+
+	var cohesion_force = steer_towards(cohesion_direction) * BoidProperties.cohesion_weight	
+	var alignment_force = steer_towards(alignment_direction) * BoidProperties.alignment_weight
+	var separation_force = steer_towards(separation_direction) * BoidProperties.separation_weight
+	var avoidance_force = steer_towards(avoidance(direction)) * BoidProperties.avoidance_weight
+		
 	acceleration += cohesion_force
 	acceleration += alignment_force
 	acceleration += separation_force
 	acceleration += avoidance_force
 	
 	velocity += acceleration * delta
+	var speed = velocity.length()
 	direction = velocity.normalized()
-	
-	var turn_speed = direction.length_squared()
-	var speed = clamp(velocity.length(), BoidProperties.min_speed, BoidProperties.max_speed)
-	
+	speed = clamp(speed, BoidProperties.min_speed, BoidProperties.max_speed)
 	velocity = direction * speed
+	var turn_speed = clamp((direction * direction).length(), BoidProperties.min_turn_speed, BoidProperties.max_turn_speed)
+	velocity_ray.set_cast_to((global_transform.origin + direction) * 3)
 	
+	"""
+	it experiences gimbal lock when it has been rotated and is pointing to the -z direction
+	"""
+	#print('avoid: ', avoidance_force, 'dir: ', direction, 'vel: ', velocity, 'turn: ', turn_speed)
+	move_and_collide(velocity * delta)
+	smooth_rotate(direction, turn_speed)
+
+func smooth_rotate(dir: Vector3, turn_speed: float):
+	var target = transform.origin + dir
 	var current_basis = Quat(transform.basis)
-	var new_transform = transform.looking_at(transform.origin + direction, Vector3.UP)
+	var new_transform = transform.looking_at(target, Vector3.UP)
 	var new_basis = Quat(new_transform.basis)
-	var interpolated_basis = current_basis.slerp(new_basis, clamp(turn_speed, BoidProperties.min_turn_speed, BoidProperties.max_turn_speed))
-	transform.basis = Basis(interpolated_basis)
-	
-	velocity = move_and_slide(velocity)
+	var rotated_basis = current_basis.slerp(new_basis, turn_speed)
+	transform.basis = Basis(rotated_basis)
 
-# get offset of position wrt to average position of other nearby boids
-func cohesion(boids: Array) -> Vector3:
-	var avg = Vector3.ZERO
-	if boids.size() > 0:
-		for b in boids:
-			avg += b.global_transform.origin 
-		avg /= boids.size() #calculate the average position of all boids in the detection radius
-		var dir = avg - global_transform.origin  #get the direction to the offset
-		return dir
-	else:
-		return Vector3.ZERO
-		
-# get average direction vector of nearby boids
-func alignment(boids: Array) -> Vector3:
-	var avg_direction = Vector3.ZERO
-	if boids.size() > 0:
-		for b in boids:
-			avg_direction += b.direction.normalized()
-		return avg_direction
-	else:
-		return Vector3.ZERO
-
-func separation(boids: Array) -> Vector3:
-	var avg = Vector3.ZERO
-	if boids.size() > 0:
-		for b in boids:
-			avg += b.global_transform.origin 
-		avg /= boids.size() #calculate the average position of all boids in the detection radius
-		var dir = avg - global_transform.origin  #get the direction to the offset
-		return -dir
-	else:
-		return Vector3.ZERO
-
-func avoidance() -> Vector3:
-	if intent.is_colliding():
-		enable_rays(true)
+func avoidance(direction: Vector3) -> Vector3:
+	var space_state = get_world().direct_space_state
+	var result = space_state.intersect_ray(transform.origin, transform.origin + direction * 2, [self])
+	if result:
+		#print('colliding!')
 		return get_average_unobstructed_direction()
 	else:
-		enable_rays(false)
 		return Vector3.ZERO
-	
+
 func get_nearby_boids() -> Array:
 	var result: Array = []
 	for body in detectionZone.get_overlapping_bodies():
 		if body is KinematicBody:
 			result.append(body)
+		if result.size() > 5:
+			break
 	return result
-	
+
 func steer_towards(vector: Vector3) -> Vector3:
 	return vector.normalized() * BoidProperties.max_speed - velocity
 
 func get_average_unobstructed_direction() -> Vector3:
 	var avg := Vector3.ZERO
-	var best_hit = intent.get_cast_to()
-	for ray in collisionRays.get_children():
-		var dir: Vector3 = ray.get_cast_to()
-		if ray.is_colliding() && ray.get_collider() is StaticBody:
-			avg -= dir
-		else:
+	var space_state = get_world().direct_space_state	
+	for dir in BoidUtils.ray_directions:
+		#print(dir)
+		var result = space_state.intersect_ray(transform.origin, transform.origin + dir, [self])
+		#print('intersect ray result: ', result)
+		if !result:
 			avg += dir
-	return avg / collisionRays.get_children().size() #all are hit, return the best one
-
-func enable_rays(enabled: bool) -> void:
-	for ray in collisionRays.get_children():
-		ray.set_enabled(enabled)
-
-#Generate collision rays using golden ratio sunflower projection.
-#Then prune using dot product of cast position compared to transform basis of z-axis
-func generate_collision_rays() -> void:
-	for n in BoidProperties.num_collision_rays:
-		var phi: float = acos(1 - 2 * (n + BoidProperties.turn_fraction) / BoidProperties.num_collision_rays)
-		var theta: float = PI * (1 + pow(5, BoidProperties.turn_fraction)) * (n + BoidProperties.turn_fraction)
-		var x = sin(phi) * cos(theta)
-		var y = sin(phi) * sin(theta)
-		var z = cos(phi)
-		var ray = make_ray(Vector3(x, y, z), BoidProperties.collision_depth, false)
-		if ray.get_cast_to().dot(Vector3.FORWARD) > BoidProperties.look_back:
-			collisionRays.add_child(ray)
-
+	#print('avg: ', avg)
+	return avg
+	
 #Create a ray, given a casting_position and flag it as enabled or disabled.
 func make_ray(casting_pos: Vector3, length: float, enabled: bool) -> RayCast:
 	var ray = RayCast.new()
